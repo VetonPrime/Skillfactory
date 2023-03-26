@@ -1,13 +1,15 @@
-from django.test import TestCase
-
-# Create your tests here.
+from django import template
 
 
+register = template.Library()
+
+
+@register.filter()
 def censor(value):
     bad_words = [
         'редиска',
         'дурак'
-        ]
+    ]
 
     for word in bad_words:
         if word in value.lower():
@@ -16,7 +18,3 @@ def censor(value):
             value = value.replace(word.title(), word[0].title() + end_world)
 
     return value
-
-
-a = 'Нехороший человек — редиска! Редиска - это овощь'
-print(censor(a))
