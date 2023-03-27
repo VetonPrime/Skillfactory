@@ -1,5 +1,5 @@
 from django import template
-
+from ..models import CONTENTS
 
 register = template.Library()
 
@@ -18,3 +18,10 @@ def censor(value):
             value = value.replace(word.title(), word[0].title() + end_world)
 
     return value
+
+
+@register.filter()
+def content_new(value):
+    for i, j in CONTENTS:
+        if i == value:
+            return j

@@ -8,9 +8,15 @@ Post
 {% endblock title %}
 
 {% block content %}
-   <h1>Всего новостей: {{ news|length }}</h1>
+   <h1>Поиск новостей</h1>
+
+   <form action="" method="get">
+       {{ filterset.form.as_p }}
+       <input type="submit" value="Найти" />
+   </form>
+
    <hr>
-   {% if news %}
+   {% if news_search %}
        <table>
            <tr>
                <td>Заголовок</td>
@@ -18,7 +24,7 @@ Post
                <td>Содержание</td>
            </tr>
 
-           {% for new in news %}
+           {% for new in news_search %}
            <tr>
                <td>{{ new.heading|censor }}</td>
                <td>{{ new.date_create|date:'d M Y' }}</td>
