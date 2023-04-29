@@ -1,7 +1,11 @@
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 from requests import request
+from datetime import datetime, timedelta
 
-from .models import Post, Category, BaseRegisterForm, Author
+from django.http import HttpResponse
+from django.views import View
+
+from .models import Post, Category, BaseRegisterForm, Author, post
 from .forms import PostForm
 from .filter import PostFilter
 from django.contrib.auth.models import User, Group
@@ -9,7 +13,7 @@ from django.views.generic.edit import CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib.auth.decorators import login_required
-
+from .tasks import send_email_task
 
 @login_required
 def upgrade_me(request):
@@ -55,6 +59,13 @@ class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):  
     permission_required = 'news.add_post'
     template_name = 'post_add.html'
     form_class = PostForm
+    model = post
+
+    def form_valid(self, form):
+        post = form.save(commit=False)
+        post.save()
+        send_email_task.delay(post.pk)
+        return super().form_valid(form)
 
 
 class PostUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):   # редактирование поста
