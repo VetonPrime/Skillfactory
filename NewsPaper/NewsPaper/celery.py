@@ -8,10 +8,15 @@ app = Celery('NewsPaper')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.beat_schedule = {
     'send_mail_every_week': {
-        'task': 'NewsPortal.tasks.get_week_notification',
+        'task': 'news.tasks.week_send_email_task',
         'schedule': crontab(hour=8, minute=0, day_of_week='mon'),
 
     }
 }
 
 app.autodiscover_tasks()
+
+
+# 11)      'task': 'NewsPortal.tasks.get_week_notification',
+
+# 11)  novoe    'task': 'news.tasks.week_send_email_task',

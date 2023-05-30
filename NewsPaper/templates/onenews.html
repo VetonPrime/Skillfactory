@@ -6,6 +6,9 @@
 
     {% load censor %}
     {% load custom_tags %}
+    {% load cache %}
+
+    {% cache 300 one_news %}
 
     {% block title %}
     Onenews
@@ -43,6 +46,7 @@
         <h2>упс! её нет!</h2>
     {% endif %}
     {% endblock content %}
+    {% endcache %}
 </head>
 <body>
 
