@@ -1,5 +1,5 @@
 from django.forms import ModelForm, BooleanField
-from .models import Post
+from .models import Post, Reply, Comment
 from allauth.account.forms import SignupForm
 from django.contrib.auth.models import Group
 
@@ -12,7 +12,16 @@ class PostForm(ModelForm):
         fields = ['title', 'text', 'category', 'author_post', 'post_news', 'check_box']
         # не забываем включить галочку в поля, иначе она не будет показываться на странице!
 
+class ReplyForm(ModelForm):
+    class Meta:
+        model = Reply
+        fields = ['text']
 
+class CommentForm(ModelForm):
+
+    class Meta:
+        model = Comment
+        fields = ('text',)
 class BasicSignupForm(SignupForm):
 
     def save(self, request):

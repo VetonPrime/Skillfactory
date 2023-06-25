@@ -1,21 +1,16 @@
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 from requests import request
-from datetime import datetime, timedelta
 
-from django.http import HttpResponse
-from django.views import View
-
-from .models import Post, Category, BaseRegisterForm, Author, post
-from .forms import PostForm
+from .models import Post, Category, BaseRegisterForm, Author, Reply, Comment
+from .forms import PostForm, ReplyForm, CommentForm
 from .filter import PostFilter
 from django.contrib.auth.models import User, Group
 from django.views.generic.edit import CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib.auth.decorators import login_required
-from .tasks import send_email_task
-from django.core.cache import cache
-
+from django.urls import reverse_lazy
+from django.contrib import messages
 
 @login_required
 def upgrade_me(request):
@@ -31,7 +26,7 @@ class PostList(LoginRequiredMixin, ListView):
     ordering = '-date_in'
     template_name = 'news.html'
     context_object_name = 'post_news'
-    paginate_by = 50
+    paginate_by = 5
 
     def get_context_data(self, **kwargs):  # забираем отфильтрованные объекты переопределяя метод get_context_data у наследуемого класса
         context = super().get_context_data(**kwargs)
@@ -50,50 +45,70 @@ class PostList(LoginRequiredMixin, ListView):
         return super().get(request, *args, **kwargs)
 
 
-class PostDetail(LoginRequiredMixin, DetailView):
+'''class PostDetail(LoginRequiredMixin, DetailView):
     model = Post
     template_name = 'onenews.html'
     context_object_name = 'onenews'
     queryset = Post.objects.all()
-
-    def get_object(self, *args, **kwargs):  # переопределяем метод получения объекта
-        obj = cache.get(f'post-{self.kwargs["pk"]}', None)
-        # кэш очень похож на словарь, и метод get действует так же. Он забирает значение по ключу, если его нет, то забирает None.
-        # если объекта нет в кэше, то получаем его и записываем в кэш
-        if not obj:
-            obj = super().get_object(queryset=self.queryset)
-            cache.set(f'post-{self.kwargs["pk"]}', obj)
-
-        return obj
+'''
 
 
-class PostCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):   # создание поста
-    permission_required = 'news.add_post'
-    template_name = 'post_add.html'
-    form_class = PostForm
-    model = post
+class PostDetail(PermissionRequiredMixin, DetailView, CreateView):
+    model = Post
+    template_name = 'onenews.html'
+    context_object_name = 'onenews'
+    queryset = Post.objects.all()
+    permission_required = 'auth.view_post'
+
+    form_class = CommentForm
+    success_url = reverse_lazy('post_detail')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = CommentForm()
+        return context
 
     def form_valid(self, form):
-        post = form.save(commit=False)
-        post.save()
-        send_email_task.delay(post.pk)
+        form.instance.user = self.request.user
+        form.instance.post_id = self.kwargs['pk']
+        form.instance.parent_id = self.request.POST.get('parent_id', None)
         return super().form_valid(form)
 
 
-class PostUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):   # редактирование поста
-    permission_required = 'news.change_post'
-    template_name = 'post_edit.html'
+class PostCreateView(PermissionRequiredMixin, CreateView):
+    permission_required = 'news.post_add'
     form_class = PostForm
+    model = Post
+    template_name = 'post_add.html'
 
-    # метод get_object мы используем вместо queryset, чтобы получить информацию об объекте редактирования
-    def get_object(self, **kwargs):
-        id = self.kwargs.get('pk')
-        return Post.objects.get(pk=id)
+    # success_url = reverse_lazy('your_success_url')
+
+   # def form_valid(self, form):
+        # kek
+    #    kek = form.save(commit=False)
+     #   user = self.request.user
+      #  try:
+            #user_author = Author.objects.get(user=user)
+       #     user_author = Author.objects.get(user_author=request.user)
+        #except Author.DoesNotExist:
+            #user_author = Author.objects.create(user=user)
+    #        user_author = Author.objects.get(user_author=request.user)
+    #    post = form.save(commit=False)
+    #    post.author = user_author
+    #    post.save()
+     #   return super().form_valid(form)
+
+
+class PostUpdateView(PermissionRequiredMixin, UpdateView):
+    permission_required = 'news.post_edit'
+    form_class = PostForm
+    model = Post
+    template_name = 'post_edit.html'
 
 
 # дженерик для удаления поста
-class PostDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
-    permission_required = 'news.delete_post'
+class PostDeleteView(PermissionRequiredMixin, DeleteView):
+    permission_required = 'news.post_delete'
     model = Post
     template_name = 'post_delete.html'
     queryset = Post.objects.all()
@@ -141,6 +156,95 @@ class CategoryListView(ListView):
         return context
 
 
+class CommentCreateView(LoginRequiredMixin, CreateView):  # создание комментария
+    model = Comment
+    fields = ['content']
+    template_name = 'comm_create.html'
+    success_url = reverse_lazy('post_detail')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.post_id = self.kwargs['pk']
+        form.instance.parent_id = self.request.POST.get('parent_id', None)
+        return super().form_valid(form)
+
+
+class CommentListView(LoginRequiredMixin, ListView):   # отображения списка комментариев пользователя
+    model = Comment
+    template_name = 'comm_list.html'
+    context_object_name = 'comments'
+
+    def get_queryset(self):
+        user = self.request.user
+        return Comment.objects.filter(user=user)
+
+
+class CommentFilterView(LoginRequiredMixin, ListView):  # фильтрации комментариев по постам
+    model = Comment
+    template_name = 'comm_list.html'
+    context_object_name = 'comments'
+
+    def get_queryset(self):
+        user = self.request.user
+        post_id = self.kwargs['pk']
+        return Comment.objects.filter(user=user, post_id=post_id)
+
+
+class CommentDeleteView(LoginRequiredMixin, DeleteView):  #  удаления комментария
+    model = Comment
+    success_url = reverse_lazy('comm_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Комментарий удален')
+        return super().delete(request, *args, **kwargs)
+
+
+class CommentApproveView(LoginRequiredMixin, DeleteView):  # принятия комментария
+    model = Comment
+    success_url = reverse_lazy('comm_list')
+
+    def approve(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.approved = True
+        self.object.save()
+        messages.success(request, 'Комментарий добавлен')
+        return super().delete(request, *args, **kwargs)
+
+
+'''
+class ReplyCreate(LoginRequiredMixin,PermissionRequiredMixin, CreateView):
+    permission_required = 'rpg.comm_create'
+    form_class = ReplyForm
+    model = Reply
+    template_name = 'comm_create.html'
+
+    def form_valid(self, form):
+        reply = form.save(commit=False)
+        if self.request.method == 'POST':
+            pk = self.request.path.split('/')[-3]
+            sender = self.request.user
+            reply.post = Post.objects.get(id=pk)
+            reply.sender = User.objects.get(username=sender)
+        reply.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        url = '/'.join(self.request.path.split('/')[0:-2])
+        return url
+
+
+class Replies(PermissionRequiredMixin, ListView):
+    permission_required = 'rpg.comm_post'
+    model = Reply
+    template_name = 'comm_post.html'
+    context_object_name = 'replies'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(post__author_id=self.request.user.id)
+'''
+
+
 @login_required
 def subscribe(request, pk):
     user = request.user
@@ -158,3 +262,18 @@ def unsubscribe(request, pk):
     message = 'отписка от категории: '
     return render(request, 'subscribe.html', {'category': category, 'message': message})
 
+'''
+def add_comment(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            return redirect('news', pk=post.pk)
+    else:
+        form = CommentForm()
+    return render(request, 'comment_create.html', {'form': form})
+'''

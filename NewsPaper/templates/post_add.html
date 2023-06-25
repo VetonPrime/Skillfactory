@@ -1,25 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{% extends 'flatpages/default.html' %}</title>
-    {% load censor %}
-    {% load custom_tags %}
+{% extends 'flatpages/default.html' %}
 
-    {% block title %}
-    Onenews
-    {% endblock title %}
-
-    {% block content %}
-    <h1>создание новости</h1>
-    <hr>
-    <form action=""method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input type="submit"
-        value="сохранить"/>
-    </form>
+{% block content %}
+<h1>Создать или редактировать пост</h1>
+<hr>
+<form action="{% url 'post_add' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.media }}
+    {{ form.as_p }}
+    <input type="submit" class="btn btn-success" value="Сохранить" />
+</form>
 {% endblock content %}
-</head>
-</body>
-</html>

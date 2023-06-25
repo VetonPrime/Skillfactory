@@ -1,45 +1,41 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models import Sum
 from django.contrib.auth.forms import UserCreationForm
 from django import forms
-from django.core.cache import cache
+from ckeditor.fields import RichTextField
+from django.contrib.auth import get_user_model
 
 
 class Author(models.Model):
     user_author = models.OneToOneField(User, on_delete=models.CASCADE)
-    user_rating = models.IntegerField(default=0)
-
-    def update_rating(self):
-        rating_posts_author = \
-            Post.objects.filter(author_post=self).aggregate(Sum('rating_news')).get('rating_news__sum') * 3
-        rating_comments_author = \
-            Comment.objects.filter(user_comment=self.user_author).aggregate(Sum('rating_comment')).\
-            get('rating_comment__sum')
-        rating_comments_posts = \
-            Comment.objects.filter(post_comment__author_post=self.id).aggregate(Sum('rating_comment')).\
-            get('rating_comment__sum')
-
-        self.user_rating = rating_posts_author + rating_comments_author + rating_comments_posts
-        print(self.user_rating)
-        self.save()
 
     def __str__(self):
         return self.user_author.username
 
 
 class Category(models.Model):
-    tehnika = 'TH'
-    nauka = 'NA'
-    sport = 'ST'
-    spase = 'SP'
+    tank = 'TN'
+    healer = 'HL'
+    damager = 'DD'
+    guild_master = 'GM'
+    quest_giver = 'KG'
+    smith = 'KZ'
+    tanner = 'KV'
+    potion_maker = 'ZV'
+    spell_master = 'MZ'
 
     TEMATIC = [
-        (tehnika, 'ТЕХНИКА'),
-        (nauka, 'НАУКА'),
-        (sport, 'СПОРТ'),
-        (spase, 'КОСМОС')
+        (tank, 'Танк'),
+        (healer, 'Хил'),
+        (damager, 'ДД'),
+        (guild_master, 'Гилдмастер'),
+        (quest_giver, 'Квестгивер'),
+        (smith, 'Кузнец'),
+        (tanner, 'Кожевник'),
+        (potion_maker, 'Зельевар'),
+        (spell_master, 'Мастер заклинаний'),
     ]
+
     tematic = models.CharField(max_length=2, choices=TEMATIC, unique=True)
     subscribers = models.ManyToManyField(User, blank=True, related_name='categories')
 
@@ -48,29 +44,35 @@ class Category(models.Model):
 
 
 post = 'PO'
-news = 'NE'
 POST = [
-    (post, 'ПОСТ'),
-    (news, 'НОВОСТЬ')
+    (post, 'ПОСТ')
 ]
 
 
 class Post(models.Model):
     author_post = models.ForeignKey(Author, on_delete=models.CASCADE)
-    post_news = models.CharField(max_length=2, choices=POST)
+    post_news = models.CharField(max_length=2, choices=POST, default='PO')
     date_in = models.DateTimeField(auto_now_add=True)
     category = models.ManyToManyField(Category, through='PostCategory')
     title = models.CharField(max_length=50)
-    text = models.TextField()
-    rating_news = models.IntegerField(default=0)
+    text = RichTextField()
+    video_count = models.PositiveIntegerField(default=0)
+    image_count = models.PositiveIntegerField(default=0)
+    max_video_count = 1
+    max_image_count = 3
 
-    def like_post(self):
-        self.rating_news += 1
-        self.save()
+    def add_video(self):
+        if self.video_count >= self.max_video_count:
+            raise ValueError("Превышено максимальное количество видео")
+        self.video_count += 1
 
-    def dislike_post(self):
-        self.rating_news -= 1
-        self.save()
+    def add_image(self):
+        if self.image_count >= self.max_image_count:
+            raise ValueError("Превышено максимальное количество изображений")
+        self.image_count += 1
+
+    def __str__(self):
+        return self.title
 
     def preview(self):
         return self.text[0:124] + '...'
@@ -78,9 +80,8 @@ class Post(models.Model):
     def get_absolute_url(self):  # добавим абсолютный путь, чтобы после создания нас перебрасывало на страницу с постом
         return f'/news/{self.id}'
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)  # сначала вызываем метод родителя, чтобы объект сохранился
-        cache.delete(f'post-{self.pk}')  # затем удаляем его из кэша, чтобы сбросить его
+    def approved_comments(self):
+        return self.comments.filter(approved_comment=True)
 
 
 class PostCategory(models.Model):
@@ -89,20 +90,32 @@ class PostCategory(models.Model):
 
 
 class Comment(models.Model):
-    text_comment = models.TextField()
+    text = models.TextField()
     data_time_comment = models.DateTimeField(auto_now_add=True)
-    rating_comment = models.IntegerField(default=0)
     post_comment = models.ForeignKey(Post, on_delete=models.CASCADE)
     user_comment = models.ForeignKey(User, on_delete=models.CASCADE)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='comments_as_parent')
+    subscriptions = models.ManyToManyField(get_user_model(), related_name='subscriptions', blank=True)
+    # хранит связанных пользователей, которые подписаны на уведомления
+    reply_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='comments_as_reply_to')
+    # ссылается на родительский комментарий
+    def __str__(self):
+        return self.text
 
-    def like_comment(self):
-        self.rating_comment += 1
+    def approve(self):
+        self.approved = True
         self.save()
 
-    def dislike_comment(self):
-        self.rating_comment -= 1
-        self.save()
 
+class Reply(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    text = models.TextField()
+    date_created = models.DateTimeField(auto_now_add=True)
+    confirmed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.text
 
 class BaseRegisterForm(UserCreationForm):
     email = forms.EmailField(label="Email")

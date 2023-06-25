@@ -1,5 +1,8 @@
 from django.urls import path
-from .views import PostList, PostDetail, PostUpdateView, PostDeleteView, PostCreateView, PostSearch, BaseRegisterView
+
+from . import views
+from .views import PostList, PostDetail, PostUpdateView, PostDeleteView, PostCreateView, PostSearch, BaseRegisterView, \
+      CommentCreateView, CommentListView, CommentFilterView, CommentDeleteView, CommentApproveView
 from django.contrib.auth.views import LoginView, LogoutView
 from .views import upgrade_me, CategoryListView, subscribe, unsubscribe
 
@@ -23,5 +26,13 @@ urlpatterns = [
     path('categories/<int:pk>', CategoryListView.as_view(), name='category_list'),
     path('categories/<int:pk>/subscribe', subscribe, name='subscribe'),
     path('categories/<int:pk>/unsubscribe', unsubscribe, name='unsubscribe'),
+    #path('<int:pk>/reply/', ReplyCreate.as_view(), name='comm_post'),
+    #path('my_replies/', Replies.as_view(), name='comm_post'),
+    #path('post/<int:pk>/comment/', views.add_comment, name='add_comment'),
+    path('post/<int:pk>/comment/', CommentCreateView.as_view(), name='comment_create'),
+    path('comments/', CommentListView.as_view(), name='comm_reply'),
+    path('comments/filter/<int:pk>/', CommentFilterView.as_view(), name='comment_filter'),
+    path('comments/delete/<int:pk>/', CommentDeleteView.as_view(), name='comment_delete'),
+    path('comments/approve/<int:pk>/', CommentApproveView.as_view(), name='comment_approve'),
 ]
  
