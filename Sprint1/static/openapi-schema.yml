@@ -1,0 +1,212 @@
+User:
+    fields:
+        id:
+            type: integer
+            required: true
+        email:
+            type: string
+            required: true
+        phone:
+            type: string
+            required: true
+        first_name:
+            type: string
+            required: true
+        last_name:
+            type: string
+            required: true
+        surname:
+            type: string
+            required: true
+    methods:
+        - name: get_all
+          description: Returns all users
+          type: list
+          query: User.objects.all()
+        - name: get_by_id
+          description: Returns a user by their ID
+          type: object
+          query: User.objects.get(id=<id>)
+        - name: create
+          description: Creates a new user
+          type: object
+          query: User.objects.create(email=<email>, phone=<phone>, first_name=<first_name>, last_name=<last_name>, surname=<surname>)
+        - name: update
+          description: Updates an existing user by their ID
+          type: object
+          query: User.objects.filter(id=<id>).update(email=<email>, phone=<phone>, first_name=<first_name>, last_name=<last_name>, surname=<surname>)
+        - name: delete
+          description: Deletes a user by their ID
+          type: object
+          query: User.objects.filter(id=<id>).delete()
+
+Coords:
+    fields:
+        id:
+            type: integer
+            required: true
+        latitude:
+            type: float
+            required: true
+        longtitude:
+            type: float
+            required: true
+        height:
+            type: integer
+            required: true
+    methods:
+        - name: get_all
+          description: Returns all coordinates
+          type: list
+          query: Coords.objects.all()
+        - name: get_by_id
+          description: Returns coordinates by their ID
+          type: object
+          query: Coords.objects.get(id=<id>)
+        - name: create
+          description: Creates new coordinates
+          type: object
+          query: Coords.objects.create(latitude=<latitude>, longtitude=<longtitude>, height=<height>)
+        - name: update
+          description: Updates existing coordinates by their ID
+          type: object
+          query: Coords.objects.filter(id=<id>).update(latitude=<latitude>, longtitude=<longtitude>, height=<height>)
+        - name: delete
+          description: Deletes coordinates by their ID
+          type: object
+          query: Coords.objects.filter(id=<id>).delete()
+
+Level:
+    fields:
+        id:
+            type: integer
+            required: true
+        winter:
+            type: string
+            required: true
+        summer:
+            type: string
+            required: true
+        autumn:
+            type: string
+            required: true
+        spring:
+            type: string
+            required: true
+    methods:
+        - name: get_all
+          description: Returns all levels
+          type: list
+          query: Level.objects.all()
+        - name: get_by_id
+          description: Returns a level by its ID
+          type: object
+          query: Level.objects.get(id=<id>)
+        - name: create
+          description: Creates a new level
+          type: object
+          query: Level.objects.create(winter=<winter>, summer=<summer>, autumn=<autumn>, spring=<spring>)
+        - name: update
+          description: Updates an existing level by its ID
+          type: object
+          query: Level.objects.filter(id=<id>).update(winter=<winter>, summer=<summer>, autumn=<autumn>, spring=<spring>)
+        - name: delete
+          description: Deletes a level by its ID
+          type: object
+          query: Level.objects.filter(id=<id>).delete()
+
+Image:
+    fields:
+        id:
+            type: integer
+            required: true
+        title:
+            type: string
+            required: true
+        date_added:
+            type: datetime
+            required: true
+        image:
+            type: binary
+            required: true
+        pereval:
+            type: integer
+            required: true
+    methods:
+        - name: get_all
+          description: Returns all images
+          type: list
+          query: Image.objects.all()
+        - name: get_by_id
+          description: Returns an image by its ID
+          type: object
+          query: Image.objects.get(id=<id>)
+        - name: create
+          description: Creates a new image
+          type: object
+          query: Image.objects.create(title=<title>, date_added=<date_added>, image=<image>, pereval_id=<pereval_id>)
+        - name: update
+          description: Updates an existing image by its ID
+          type: object
+          query: Image.objects.filter(id=<id>).update(title=<title>, date_added=<date_added>, image=<image>, pereval_id=<pereval_id>)
+        - name: delete
+          description: Deletes an image by its ID
+          type: object
+          query: Image.objects.filter(id=<id>).delete()
+
+Pereval:
+    fields:
+        id:
+            type: integer
+            required: true
+        user:
+            type: integer
+            required: true
+        coord:
+            type: integer
+            required: true
+        level:
+            type: integer
+            required: true
+        images:
+            type: integer
+            required: true
+        status:
+            type: string
+            required: true
+        beauty_title:
+            type: string
+            required: true
+        title:
+            type: string
+            required: true
+        other_titles:
+            type: string
+            required: true
+        connect:
+            type: string
+            required: true
+        add_time:
+            type: time
+            required: true
+    methods:
+        - name: get_all
+          description: Returns all perevals
+          type: list
+          query: Pereval.objects.all()
+        - name: get_by_id
+          description: Returns a pereval by its ID
+          type: object
+          query: Pereval.objects.get(id=<id>)
+        - name: create
+          description: Creates a new pereval
+          type: object
+          query: Pereval.objects.create(user_id=<user_id>, coord_id=<coord_id>, level_id=<level_id>, images_id=<images_id>, status=<status>, beauty_title=<beauty_title>, title=<title>, other_titles=<other_titles>, connect=<connect>, add_time=<add_time>)
+        - name: update
+          description: Updates an existing pereval by its ID
+          type: object
+          query: Pereval.objects.filter(id=<id>).update(user_id=<user_id>, coord_id=<coord_id>, level_id=<level_id>, images_id=<images_id>, status=<status>, beauty_title=<beauty_title>, title=<title>, other_titles=<other_titles>, connect=<connect>, add_time=<add_time>)
+        - name: delete
+          description: Deletes a pereval by its ID
+          type: object
+          query: Pereval.objects.filter(id=<id>).delete()
